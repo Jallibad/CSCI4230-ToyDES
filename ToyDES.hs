@@ -1,80 +1,35 @@
-{-# LANGUAGE DataKinds, ScopedTypeVariables, FlexibleContexts, UndecidableInstances, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE BinaryLiterals, FlexibleContexts, TypeFamilies #-}
 
-import Control.Arrow
-import Data.Function
-import Data.Vector as Vector hiding (map, take, foldl)
-import Data.List (tails, mapAccumL)
-import Data.Bits hiding (xor)
-import qualified Data.Bits (xor)
-import qualified Data.Vector.Fixed as Vec
-import Data.Vector.Fixed.Boxed (Vec3, Vec4)
-import Data.Ratio
+import Control.Arrow ((***))
+import Data.List (tails, genericIndex)
+import Data.Bits (xor)
+import BitVector
 
-type Vector3 = Vector
-type Vector4 = Vector
-type Vector6 = Vector
-type Vector8 = Vector
-type Vector12 = Vector
+expansion :: BitVector 6 -> BitVector 8
+expansion b = fromList $ map (b !) [0,1,3,2,3,2,4,5]
 
-makeKeys :: [Int] -> [Vector Int]
-makeKeys = take 2 . map (fromList . take 8) . tails . cycle
+f :: BitVector 6 -> BitVector 8 -> BitVector 6
+f r k = uncurry BitVector.concat	-- Apply permutation box
+		$ (s1 *** s2)				-- Apply the substitution boxes
+		$ (bitVectorSplit			:: BitVector 8 -> (BitVector 4, BitVector 4))
+		$ expansion r `xor` k		--
+	where
+		box = genericIndex			:: [BitVector 3] -> BitVector 4 -> BitVector 3
+		s1 = box [0b101,0b010,0b001,0b110,0b011,0b100,0b111,0b000,0b001,0b100,0b110,0b010,0b000,0b111,0b101,0b011]
+		s2 = box [0b100,0b000,0b110,0b101,0b111,0b001,0b011,0b010,0b101,0b011,0b000,0b111,0b110,0b010,0b001,0b100]
 
-l0 :: Vector Int
-l0 = vectorFromInt 6 17
-r0 :: Vector Int
-r0 = vectorFromInt 6 43
+makeKeys :: Thing keylength => BitVector keylength -> [BitVector 8]
+makeKeys =	take 2						--
+			. map (fromList . take 8)	--
+			. tails . cycle . toList	--
 
-expansion :: Vector6 a -> Vector8 a
-expansion = flip backpermute $ fromList [0,1,3,2,3,2,4,5]
+encrypt :: Thing keylength => BitVector 12 -> BitVector keylength -> BitVector 12
+encrypt p = uncurry (flip BitVector.concat)	-- Flip and recombine l and r
+			. foldl feistel					-- Apply the feistel function for each of the keys
+				(bitVectorSplit p)			-- Initial value to fold: plaintext block split in half
+			. makeKeys						-- Returns a rotating list of keys [0..length of DES cycle]
 
-encrypt :: Vector12 Int -> [Int] -> Vector12 Int
-encrypt n k = uncurry (flip (Vector.++)) $ foldl (&) (Vector.splitAt 6 n) $ map feistel $ makeKeys k
+feistel :: (BitVector 6, BitVector 6) -> BitVector 8 -> (BitVector 6, BitVector 6)
+feistel (l,r) k = (r, l `xor` (f r k))
 
-xor :: Bits a => Vector a -> Vector a -> Vector a
-xor = Vector.zipWith Data.Bits.xor
-
-feistel :: Vector8 Int -> (Vector6 Int, Vector6 Int) -> (Vector6 Int, Vector6 Int)
-feistel k (l,r) = (r, l `xor` f r k)
-
-f :: Vector6 Int -> Vector8 Int -> Vector6 Int
-f r k = uncurry (Vector.++) $ (s1Box *** s2Box) $ Vector.splitAt 4 (expansion r `xor` k)
-
-f' :: (Vec.Vector w Bool, Vec.Dim w ~ 6) => (Vec4 Bool, Vec4 Bool) -> w Bool
-f' = uncurry Vec.concat . (box s1 *** box s2)
---f' = Vec.concat `on` box
-
-box :: [Vec3 Bool] -> Vec4 Bool -> Vec3 Bool
-box s = (s !!) . vectorToInt
-
-s1Box :: Vector4 Int -> Vector3 Int
-s1Box s = (map (vectorFromInt 3) [101,010,001,110,011,100,111,000,001,100,110,010,000,111,101,011]) !! (Vector.foldl1 (\n d -> 2*n+d) s)
-
-s1 :: [Vec3 Bool]
-s1 = [101,010,001,110,011,100,111,000,001,100,110,010,000,111,101,011]
-
-s2Box :: Vector4 Int -> Vector3 Int
-s2Box s = (map (vectorFromInt 3) [100,000,110,101,111,001,011,010,101,011,000,111,110,010,001,100]) !! (Vector.foldl1 (\n d -> 2*n+d) s)
-
-s2 :: [Vec3 Bool]
-s2 = [100,000,110,101,111,001,011,010,101,011,000,111,110,010,001,100]
-
-vectorFromInt :: (Bits a, Num a) => Int -> a -> Vector a
-vectorFromInt len n = generate len $ \i -> if testBit n i then 1 else 0
-
-vecToVec :: Vec.Vector v Bool => Vector Int -> v Bool
-vecToVec = Vec.fromList' . map (/=0) . toList
-
-intToVector :: Vec.Vector v Bool => Int -> v Bool
-intToVector n = Vec.generate $ testBit n
-
-vectorToInt :: Integral a => Vec.Vector v Bool => v Bool -> a
-vectorToInt = Vec.foldr (\d n -> 2*n + if d then 1 else 0) 0
-
-instance Vec.Vector v Bool => Num (v Bool) where
-	(+) = (fromInteger .) . on (+) vectorToInt
-	(*) = (fromInteger .) . on (*) vectorToInt
-	(-) = (fromInteger .) . on (-) vectorToInt
-	abs = fromInteger . abs . vectorToInt
-	signum _ = 1
-	negate = error "Negation is not defined for boolean vectors"
-	fromInteger = Vec.generate . testBit
+main = print $ encrypt 0b100010110101 (0b111000111 :: BitVector 9)
