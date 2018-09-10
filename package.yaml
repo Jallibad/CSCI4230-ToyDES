@@ -22,6 +22,7 @@ dependencies:
 - base >= 4.7 && < 5
 - lens
 - fixed-vector
+- criterion
 
 library:
   source-dirs: src
@@ -29,7 +30,7 @@ library:
 executables:
   CSCI4230-ToyDES-exe:
     main:                CSCI4230-ToyDES.hs
-    source-dirs:         app
+    source-dirs:         src
     ghc-options:
     - -fno-warn-tabs
     - -threaded
