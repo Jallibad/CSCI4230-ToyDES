@@ -28,7 +28,9 @@ module BitVector (
 	split,
 	-- ** Miscellaneous
 	backPermute,
-	backPermute'
+	backPermute',
+	fromList,
+	toList
 )where
 
 import Control.Arrow ((***))

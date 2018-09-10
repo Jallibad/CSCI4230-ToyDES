@@ -1,0 +1,51 @@
+name:                CSCI4230-ToyDES
+version:             0.1.0.0
+github:              "jallibad/CSCI4230-ToyDES"
+license:             BSD3
+author:              "Jordan Alligood"
+maintainer:          "jallibad@gmail.com"
+copyright:           "2018 Jordan Alligood"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/jallibad/CSCI4230-ToyDES#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- lens
+- fixed-vector
+
+library:
+  source-dirs: src
+
+executables:
+  CSCI4230-ToyDES-exe:
+    main:                CSCI4230-ToyDES.hs
+    source-dirs:         app
+    ghc-options:
+    - -fno-warn-tabs
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - CSCI4230-ToyDES
+
+tests:
+  CSCI4230-ToyDES-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -fno-warn-tabs
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+#    dependencies:
+#    - CSCI4230-ToyDES

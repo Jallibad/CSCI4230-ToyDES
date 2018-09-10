@@ -5,6 +5,8 @@
 {-# LANGUAGE TypeFamilies		#-}
 {-# LANGUAGE TypeOperators		#-}
 
+module ToyDES where
+
 import BitVector
 import Control.Arrow ((***))
 import Control.Lens ((%~), both)
