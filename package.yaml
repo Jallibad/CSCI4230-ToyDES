@@ -22,13 +22,12 @@ dependencies:
 - base >= 4.7 && < 5
 - lens
 - fixed-vector
-- criterion
 
 library:
   source-dirs: src
 
 executables:
-  CSCI4230-ToyDES-exe:
+  ToyDES-exe:
     main:                CSCI4230-ToyDES.hs
     source-dirs:         src
     ghc-options:
@@ -48,5 +47,6 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-#    dependencies:
-#    - CSCI4230-ToyDES
+    dependencies:
+    - CSCI4230-ToyDES
+    - criterion

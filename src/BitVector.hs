@@ -150,7 +150,10 @@ backPermute :: (Thing a, Thing b) => Vec b Int -> BitVector a -> BitVector b
 backPermute is = BitVector . flip Vec.map is . testBit
 
 backPermute' :: (Thing a, Thing b) => [Int] -> BitVector a -> BitVector b
-backPermute' is = fromList . flip Prelude.map is . testBit
+backPermute' i b
+	| Prelude.all (< BitVector.length b) i = fromList $ Prelude.map (testBit b) i
+	| otherwise = error $ "backPermute' index(es) out of bounds: "++(show invalidIs)
+	where invalidIs = Prelude.filter (>= BitVector.length b) i
 
 thing :: (Thing a, Thing b) => (Int -> Bool) -> BitVector a -> BitVector b
 thing f b = fromList $ map f [0.. BitVector.length b - 1]
