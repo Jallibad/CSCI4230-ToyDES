@@ -1,1 +1,6 @@
 # CSCI4230-ToyDES
+I wrote this assignment in Haskell using the fixed-vector library from Hackage.
+
+I used the fixed-vector package and the DataKinds language extension to implement statically sized bitfields.  This gave me some extra compile time safety regarding the bit math.  There are a couple of problems with my current implementation though.  The first is that the permutations take `[Int]` (a list of ints), which doesn't allow for any of the compile time safety checks.  The second problem is that my current BitVector implementation uses unboxed arrays of booleans rather than a packed bit representation like the C++ `std::vector<bool>` template specialization.  This is ridiculously inefficient, but fixing it should mostly be a matter of modifying the BitVector type, the homework specific code in ToyDES would not have to be changed to accommodate this.
+
+The program can be compiled using `stack build` and then run with `stack exec ToyDES-exe`.  Currently Stack will automatically download the dependencies (currently fixed-vector and lens, sorry they're so huge).

@@ -31,7 +31,7 @@ module BitVector (
 	backPermute',
 	fromList,
 	toList
-)where
+) where
 
 import Control.Arrow ((***))
 import Control.Lens

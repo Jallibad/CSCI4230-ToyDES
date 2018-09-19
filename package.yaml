@@ -28,7 +28,7 @@ library:
 
 executables:
   ToyDES-exe:
-    main:                CSCI4230-ToyDES.hs
+    main:                ToyDES.hs
     source-dirs:         src
     ghc-options:
     - -fno-warn-tabs
