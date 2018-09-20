@@ -4,15 +4,48 @@
 {-# LANGUAGE TypeApplications	#-}
 {-# LANGUAGE TypeFamilies		#-}
 {-# LANGUAGE TypeOperators		#-}
+{-# LANGUAGE OverloadedStrings	#-}
+{-# LANGUAGE ViewPatterns		#-}
 
 import BitVector
 import Control.Arrow ((***),(&&&))
+import Control.Exception (bracket)
 import Data.Bits (shift, xor)
+import Data.ByteString.Lazy (ByteString)
+import qualified Data.ByteString.Lazy as B
 import Data.List (genericIndex)
 import Data.Tuple (swap)
+import Debug.Trace
 import GHC.TypeLits
+import Network.Socket
+import Network.Socket.ByteString (sendAll)
 
-main = print $ encrypt 0b10110101 0b1110001110
+--main = print $ encrypt 0b10110101 0b1110001110
+
+main :: IO ()
+main = withSocketsDo $ do
+    addr <- resolve "127.0.0.1" "5005"
+    bracket (open addr) close talk
+  where
+    resolve host port = do
+        let hints = defaultHints { addrSocketType = Stream }
+        addr:_ <- getAddrInfo (Just hints) (Just host) (Just port)
+        return addr
+    open addr = do
+        sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
+        connect sock $ addrAddress addr
+        return sock
+    talk sock = do
+        sendAll sock "Hello, world!"
+        msg <- recv sock 1024
+        putStr "Received: "
+        putStrLn msg
+
+encrypt' :: BitVector 10 -> ByteString -> ByteString
+encrypt' k = B.map $ fromIntegral . flip encrypt k . fromIntegral
+
+decrypt' :: BitVector 10 -> ByteString -> ByteString
+decrypt' k = B.map $ fromIntegral . flip decrypt k . fromIntegral
 
 encrypt :: BitVector 8 -> BitVector 10 -> BitVector 8
 encrypt p = inversePerm			-- Flip and recombine l and r
@@ -64,7 +97,7 @@ makeKeys =	take 2 . tail					-- Take the result of applying the operations 1x an
 feistel :: (BitVector 4, BitVector 4) -> BitVector 8 -> (BitVector 4, BitVector 4)
 feistel (l,r) k = (r, l `xor` f r k)
 
-test = decrypt (encrypt n k) k == n
+test n = decrypt (encrypt n k) k == n
 		where
-			n = 0b10110101
+			--n = 0b10110101
 			k = 0b1110001110
