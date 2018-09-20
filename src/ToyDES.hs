@@ -17,10 +17,9 @@ import Data.ByteString (ByteString, readFile, writeFile)
 import qualified Data.ByteString as ByteString (map)
 import Data.List (genericIndex)
 import Data.Tuple (swap)
-import GHC.TypeLits
 import Prelude hiding (readFile, writeFile)
-import System.Environment
-import System.Exit
+import System.Environment (getArgs)
+import System.Exit (ExitCode(..), exitWith)
 
 --main = print $ encrypt 0b10110101 0b1110001110
 main = getArgs >>= \case
