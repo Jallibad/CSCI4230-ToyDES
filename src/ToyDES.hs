@@ -1,51 +1,43 @@
 {-# LANGUAGE BinaryLiterals		#-}
 {-# LANGUAGE DataKinds			#-}
 {-# LANGUAGE FlexibleContexts	#-}
+{-# LANGUAGE LambdaCase			#-}
+{-# LANGUAGE OverloadedStrings	#-}
 {-# LANGUAGE TypeApplications	#-}
 {-# LANGUAGE TypeFamilies		#-}
 {-# LANGUAGE TypeOperators		#-}
-{-# LANGUAGE OverloadedStrings	#-}
 {-# LANGUAGE ViewPatterns		#-}
+
+module ToyDES where
 
 import BitVector
 import Control.Arrow ((***),(&&&))
-import Control.Exception (bracket)
 import Data.Bits (shift, xor)
-import Data.ByteString.Lazy (ByteString)
-import qualified Data.ByteString.Lazy as B
+import Data.ByteString (ByteString, readFile, writeFile)
+import qualified Data.ByteString as ByteString (map)
 import Data.List (genericIndex)
 import Data.Tuple (swap)
-import Debug.Trace
 import GHC.TypeLits
-import Network.Socket
-import Network.Socket.ByteString (sendAll)
+import Prelude hiding (readFile, writeFile)
+import System.Environment
+import System.Exit
 
 --main = print $ encrypt 0b10110101 0b1110001110
-
-main :: IO ()
-main = withSocketsDo $ do
-    addr <- resolve "127.0.0.1" "5005"
-    bracket (open addr) close talk
-  where
-    resolve host port = do
-        let hints = defaultHints { addrSocketType = Stream }
-        addr:_ <- getAddrInfo (Just hints) (Just host) (Just port)
-        return addr
-    open addr = do
-        sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
-        connect sock $ addrAddress addr
-        return sock
-    talk sock = do
-        sendAll sock "Hello, world!"
-        msg <- recv sock 1024
-        putStr "Received: "
-        putStrLn msg
+main = getArgs >>= \case
+		[mode, (fromInteger . read -> key), inputFile, outputFile] -> do
+			input <- readFile inputFile
+			let operation = case mode of
+				"e" -> encrypt'
+				"d" -> decrypt'
+			writeFile outputFile $ operation key input
+			exitWith ExitSuccess
+		_ -> putStrLn "Invalid Arguments" >> exitWith (ExitFailure 1)
 
 encrypt' :: BitVector 10 -> ByteString -> ByteString
-encrypt' k = B.map $ fromIntegral . flip encrypt k . fromIntegral
+encrypt' k = ByteString.map $ fromIntegral . flip encrypt k . fromIntegral
 
 decrypt' :: BitVector 10 -> ByteString -> ByteString
-decrypt' k = B.map $ fromIntegral . flip decrypt k . fromIntegral
+decrypt' k = ByteString.map $ fromIntegral . flip decrypt k . fromIntegral
 
 encrypt :: BitVector 8 -> BitVector 10 -> BitVector 8
 encrypt p = inversePerm			-- Flip and recombine l and r
@@ -98,6 +90,4 @@ feistel :: (BitVector 4, BitVector 4) -> BitVector 8 -> (BitVector 4, BitVector 
 feistel (l,r) k = (r, l `xor` f r k)
 
 test n = decrypt (encrypt n k) k == n
-		where
-			--n = 0b10110101
-			k = 0b1110001110
+		where k = 0b1110001110
